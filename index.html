@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Chatroom</title>
+    <meta charset="UTF-8">
+    <style>
+        div {
+            border: 1px solid black;
+            width: 600px;
+            height: 150px;
+            overflow: auto;
+            padding: 5px;
+            background-color: lightyellow;
+        }
+
+        .verb {
+            font-weight: bold;
+            background-color: rgba(250, 185, 34);
+        }
+
+        .time {
+            font-size: .7em;
+            color: darkblue;
+        }
+    </style>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>const socket = io();</script>
+</head>
+
+<head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
+    <script>
+        $(document).ready(function () {
+
+            submitAndRefreshData();
+
+            $("#chat").click(function () {
+                submitDialogue();
+            });
+            $("#say").keyup(function (event) {
+                if ($("#say").is(":focus") && event.key == "Enter") {
+                    submitDialogue();
+                }
+            });
+            $("#refresh").click(function () {
+                $("#user").val("");
+                $("#say").val("");
+                submitAndRefreshData();
+            });
+            $("#clear").click(function () {
+                clearAndRefreshData();
+            });
+            $("#save").click(function () {
+                saveChatRecords();
+            });
+            $("#load").click(function () {
+                $("#user").val("");
+                $("#say").val("");
+                reloadChatRecords();
+            });
+        });
+
+        function submitDialogue() {
+            let position = $("#dialogue").scrollTop();
+            submitAndRefreshData();
+            $("#dialogue").scrollTop(position);
+        }
+
+        function submitAndRefreshData() {
+            socket.emit('chat', { user: $("#user").val(), say: $("#say").val() });
+        }
+
+        function clearAndRefreshData() {
+            socket.emit('clear');
+        }
+
+        function saveChatRecords() {
+            socket.emit('save');
+        }
+
+        function reloadChatRecords() {
+            socket.emit('reload');
+        }
+
+        socket.on('chaton', function(res) {
+            let content = "";
+            for (let chatObj of res) {
+                content += `<span class='user'>${chatObj.user}</span><span class='verb'>說</span> ${chatObj.say} (<span class='time'>${chatObj.time}</span>)<br>`;
+            }
+            $("#dialogue").html(content);
+        });
+
+        socket.on('clearon', function(){$("#dialogue").empty();});
+
+        socket.on('saveon', function (res) {
+            alert("Saving data to Atlas!");
+            console.log(JSON.stringify(res));
+        });
+
+        socket.on('reloadon', function (res) {
+            let content = "";
+            for (let chatObj of res) {
+                content += `<span class='user'>${chatObj.user}</span><span class='verb'>說</span> ${chatObj.say} (<span class='time'>${chatObj.time}</span>)<br>`;
+            }
+            $("#dialogue").html(content);
+        });
+    </script>
+</head>
+
+<body>
+
+    <div id="dialogue">
+    </div><br>
+    <label>User: <input type=" text" id="user" size="10"></input></label>
+    <label>Say: <input type="text" id="say" size="40"></label>
+    </input><input type="button" id="chat" value="Submit">
+    <p>
+        <input type="button" id="refresh" value="Refresh">
+        <input type="button" id="clear" value="Clear">
+        <input type="button" id="save" value="Save to Atlas">
+        <input type="button" id="load" value="Load from Atlas">
+    </p>
+</body>
+
+</html>
